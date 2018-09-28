@@ -1,8 +1,10 @@
 #!/usr/bin/python
+# python 2
 # Name: neopi.py
 # Description: Utility to scan a file path for encrypted and obfuscated files
 # Authors: Ben Hagen (ben.hagen@neohapsis.com)
 #         Scott Behrens (scott.behrens@neohapsis.com)
+#         Dallin Warne added md5 hashing capability 9/28/2018
 #
 # Date: 11/4/2010
 #
@@ -18,6 +20,7 @@ import re
 import csv
 import zlib
 import time
+import hashlib
 from collections import defaultdict
 from optparse import OptionParser
 
@@ -285,6 +288,33 @@ class Compression:
            print ' {0:>7.4f}        {1}'.format(self.results[x]["value"], self.results[x]["filename"])
        return
 
+class md5Hash():
+    """Take an md5 hash of each file"""
+
+    def __init__(self):
+        """Instantiate the hash array."""
+        self.results = []
+
+    def md5(self, fname):
+        hash_md5 = hashlib.md5()
+        with open(fname, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_md5.update(chunk)
+        return hash_md5.hexdigest()
+   
+    def calculate(self, data, filename):
+        """Calculate the hash"""
+		md5hashvalue=self.md5(filename)
+        self.results.append({"filename":filename, "value":md5hashvalue})
+		return md5hashvalue
+
+    def sort(self):
+        #Pass because it makes no sense to have a top 10 hash list
+        pass
+    def printer(self, count):
+        #Pass because it makes no sense to have a top 10 hash list
+        pass
+
 def resultsAddRank(results):
    rank = 1
    offset = 1
@@ -388,6 +418,11 @@ if __name__ == "__main__":
                      dest="ignore_unicode",
                      default=False,
                      help="Skip over unicode-y/UTF'y files",)
+   parser.add_option("-m", "--md5hash",
+                     action="store_true",
+                     dest="md5Hash",
+                     default=False,
+                     help="Calculate md5 Hash",)
 
    (options, args) = parser.parse_args()
 
@@ -420,6 +455,7 @@ if __name__ == "__main__":
        tests.append(LongestWord())
        tests.append(SignatureNasty())
        tests.append(SignatureSuperNasty())
+       tests.append(md5Hash())
    else:
        if options.is_entropy:
            tests.append(Entropy())
@@ -435,6 +471,8 @@ if __name__ == "__main__":
            tests.append(UsesEval())
        if options.is_zlib:
            tests.append(Compression())
+       if options.md5Hash:
+           tests.append(md5Hash())
 
    # Instantiate the Generator Class used for searching, opening, and reading files
    locator = SearchFile()
@@ -463,6 +501,7 @@ if __name__ == "__main__":
            if (options.ignore_unicode == False or fileAsciiHighRatio < .1):
                for test in tests:
                    calculated_value = test.calculate(data, filename)
+				   print ("C: " + calculated_value)
                    # Make the header row if it hasn't been fully populated, +1 here to account for filename column
                    if len(csv_header) < len(tests) + 1:
                        csv_header.append(test.__class__.__name__)
@@ -490,7 +529,11 @@ if __name__ == "__main__":
        test.sort()
        test.printer(10)
        for file in test.results:
-           rank_list[file["filename"]] = rank_list.setdefault(file["filename"], 0) + file["rank"]
+           try:
+               rank_list[file["filename"]] = rank_list.setdefault(file["filename"], 0) + file["rank"]
+           except:
+               #Will break with the hash, so just pass.
+               pass
 
    rank_sorted = sorted(rank_list.items(), key=lambda x: x[1])
 

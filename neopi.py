@@ -518,6 +518,7 @@ if __name__ == "__main__":
        tests.append(LongestWord())
        tests.append(SignatureNasty())
        tests.append(SignatureSuperNasty())
+	   tests.append(UsesEval())
        tests.append(charEncoding())
        tests.append(md5Hash())
        tests.append(sha256Hash())

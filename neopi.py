@@ -182,7 +182,7 @@ class SignatureNasty:
        if not data:
            return "", 0
        # Lots taken from the wonderful post at http://stackoverflow.com/questions/3115559/exploitable-php-functions
-       valid_regex = re.compile('(eval|file_put_contents|base64_decode|gzinflate|md5|python_eval|exec|passthru|popen|proc_open|pcntl|assert\(|system\(|shell)', re.I)
+       valid_regex = re.compile('(eval|file_put_contents|base64_decode|gzinflate|md5|preg_|bin2hex|python_eval|exec|passthru|popen|proc_open|pcntl|assert\(|system\(|shell)', re.I)
        matches = re.findall(valid_regex, data)
        self.results.append({"filename":filename, "value":len(matches)})
        return len(matches)
@@ -285,6 +285,34 @@ class Compression:
        for x in range(count):
            print ' {0:>7.4f}        {1}'.format(self.results[x]["value"], self.results[x]["filename"])
        return
+
+class charEncoding:
+   """Counts Possible Encoded Characters"""
+
+   def __init__(self):
+       """Instantiate the results array."""
+       self.results = []
+
+   def calculate(self, data, filename):
+      if not data:
+               return "", 0
+      valid_regex = re.compile('(\\\\x[0-9a-f]{2})', re.I)
+      matches = re.findall(valid_regex, data)
+      self.results.append({"filename":filename, "value":len(matches)})
+      return len(matches)
+
+   def sort(self):
+      self.results.sort(key=lambda item: item["value"])
+      self.results.reverse()
+      self.results = resultsAddRank(self.results)
+
+   def printer(self, count):
+      """Print the files that could contain encoded characters"""
+      print "\n[[ Top %i character encoding match counts ]]" % (count)
+      if (count > len(self.results)): count = len(self.results)
+      for x in range(count):
+        print ' {0:>7}          {1}'.format(self.results[x]["value"], self.results[x]["filename"])
+      return
 
 class md5Hash():
     """Take an md5 hash of each file"""
@@ -443,6 +471,11 @@ if __name__ == "__main__":
                      dest="ignore_unicode",
                      default=False,
                      help="Skip over unicode-y/UTF'y files",)
+   parser.add_option("-d", "--encoded",
+                     action="store_true",
+                     dest="charEncoding",
+                     default=False,
+                     help="Counts the number of potentially encoded characters",)
    parser.add_option("-m", "--md5",
                      action="store_true",
                      dest="md5Hash",
@@ -485,6 +518,7 @@ if __name__ == "__main__":
        tests.append(LongestWord())
        tests.append(SignatureNasty())
        tests.append(SignatureSuperNasty())
+       tests.append(charEncoding())
        tests.append(md5Hash())
        tests.append(sha256Hash())
    else:
@@ -500,6 +534,8 @@ if __name__ == "__main__":
            tests.append(SignatureSuperNasty())
        if options.is_eval:
            tests.append(UsesEval())
+       if options.is_eval:
+           tests.append(charEncoding())
        if options.is_zlib:
            tests.append(Compression())
        if options.md5Hash:

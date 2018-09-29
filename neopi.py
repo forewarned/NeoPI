@@ -1,10 +1,8 @@
 #!/usr/bin/python
-# python 2
 # Name: neopi.py
 # Description: Utility to scan a file path for encrypted and obfuscated files
 # Authors: Ben Hagen (ben.hagen@neohapsis.com)
 #         Scott Behrens (scott.behrens@neohapsis.com)
-#         Dallin Warne added md5 hashing capability 9/28/2018
 #
 # Date: 11/4/2010
 #
@@ -63,7 +61,7 @@ class LanguageIC:
            total += val * (val-1)
 
        try:
-           ic_total =      float(total)/(self.total_char_count * (self.total_char_count - 1))
+           ic_total = float(total)/(self.total_char_count * (self.total_char_count - 1))
        except:
            ic_total = 0
        self.ic_total_results = ic_total
@@ -184,7 +182,7 @@ class SignatureNasty:
        if not data:
            return "", 0
        # Lots taken from the wonderful post at http://stackoverflow.com/questions/3115559/exploitable-php-functions
-       valid_regex = re.compile('(eval\(|file_put_contents|base64_decode|python_eval|exec\(|passthru|popen|proc_open|pcntl|assert\(|system\(|shell)', re.I)
+       valid_regex = re.compile('(eval|file_put_contents|base64_decode|gzinflate|md5|python_eval|exec|passthru|popen|proc_open|pcntl|assert\(|system\(|shell)', re.I)
        matches = re.findall(valid_regex, data)
        self.results.append({"filename":filename, "value":len(matches)})
        return len(matches)
@@ -296,6 +294,7 @@ class md5Hash():
         self.results = []
 
     def md5(self, fname):
+        #Code credited to https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
         hash_md5 = hashlib.md5()
         with open(fname, "rb") as f:
             for chunk in iter(lambda: f.read(4096), b""):
@@ -304,15 +303,41 @@ class md5Hash():
    
     def calculate(self, data, filename):
         """Calculate the hash"""
-		md5hashvalue=self.md5(filename)
-        self.results.append({"filename":filename, "value":md5hashvalue})
-		return md5hashvalue
+        md5HashValue = self.md5(filename)
+        self.results.append({"filename":filename, "value":md5HashValue})
+        return md5HashValue
 
     def sort(self):
-        #Pass because it makes no sense to have a top 10 hash list
         pass
+
     def printer(self, count):
-        #Pass because it makes no sense to have a top 10 hash list
+        pass
+
+class sha256Hash():
+    """Take a sha256 hash of each file"""
+
+    def __init__(self):
+        """Instantiate the hash array."""
+        self.results = []
+
+    def sha256(self, fname):
+        #Code mostly taken from https://stackoverflow.com/questions/3431825/generating-an-md5-checksum-of-a-file
+        hash_sha256 = hashlib.sha256()
+        with open(fname, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_sha256.update(chunk)
+        return hash_sha256.hexdigest()
+   
+    def calculate(self, data, filename):
+        """Calculate the hash"""
+        sha256HashValue = self.sha256(filename)
+        self.results.append({"filename":filename, "value":sha256HashValue})
+        return sha256HashValue
+
+    def sort(self):
+        pass
+
+    def printer(self, count):
         pass
 
 def resultsAddRank(results):
@@ -418,11 +443,16 @@ if __name__ == "__main__":
                      dest="ignore_unicode",
                      default=False,
                      help="Skip over unicode-y/UTF'y files",)
-   parser.add_option("-m", "--md5hash",
+   parser.add_option("-m", "--md5",
                      action="store_true",
                      dest="md5Hash",
                      default=False,
                      help="Calculate md5 Hash",)
+   parser.add_option("-H", "--sha256",
+                     action="store_true",
+                     dest="sha256Hash",
+                     default=False,
+                     help="Calculate sha256 Hash",)
 
    (options, args) = parser.parse_args()
 
@@ -456,6 +486,7 @@ if __name__ == "__main__":
        tests.append(SignatureNasty())
        tests.append(SignatureSuperNasty())
        tests.append(md5Hash())
+       tests.append(sha256Hash())
    else:
        if options.is_entropy:
            tests.append(Entropy())
@@ -473,6 +504,8 @@ if __name__ == "__main__":
            tests.append(Compression())
        if options.md5Hash:
            tests.append(md5Hash())
+       if options.sha256Hash:
+           tests.append(sha256Hash())
 
    # Instantiate the Generator Class used for searching, opening, and reading files
    locator = SearchFile()
@@ -501,6 +534,7 @@ if __name__ == "__main__":
            if (options.ignore_unicode == False or fileAsciiHighRatio < .1):
                for test in tests:
                    calculated_value = test.calculate(data, filename)
+                   #print ("C: " + str(calculated_value))
                    # Make the header row if it hasn't been fully populated, +1 here to account for filename column
                    if len(csv_header) < len(tests) + 1:
                        csv_header.append(test.__class__.__name__)

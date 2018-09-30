@@ -3,12 +3,14 @@
 # Description: Utility to scan a file path for encrypted and obfuscated files
 # Authors: Ben Hagen (ben.hagen@neohapsis.com)
 #         Scott Behrens (scott.behrens@neohapsis.com)
+#         Dallin Warne (md5, sha256, encoding checks)
 #
 # Date: 11/4/2010
 #
 # pep-0008 - Is stupid. TABS FO'EVER!
 
 # Try catch regular expressions/bad path/bad filename/bad regex/
+# Something that we might look into is seeing if variable names are dictionary words, and check the entropy of those variables.
 
 # Library imports
 import math
@@ -182,7 +184,7 @@ class SignatureNasty:
        if not data:
            return "", 0
        # Lots taken from the wonderful post at http://stackoverflow.com/questions/3115559/exploitable-php-functions
-       valid_regex = re.compile('(eval|file_put_contents|base64_decode|gzinflate|md5|preg_|bin2hex|python_eval|exec|passthru|popen|proc_open|pcntl|assert\(|system\(|shell)', re.I)
+       valid_regex = re.compile('(eval|file_put_contents|base64_decode|gzinflate|md5|ord|chr|preg_|bin2hex|python_eval|exec|passthru|popen|proc_open|pcntl|assert\(|system\(|shell)', re.I)
        matches = re.findall(valid_regex, data)
        self.results.append({"filename":filename, "value":len(matches)})
        return len(matches)
@@ -210,7 +212,7 @@ class SignatureSuperNasty:
    def calculate(self, data, filename):
        if not data:
            return "", 0
-       valid_regex = re.compile('(@\$_\[\]=|\$_=@\$_GET|\$_\[\+""\]=)', re.I)
+       valid_regex = re.compile('(unslash_rec|@\$_\[\]=|\$_=@\$_GET|\$_\[\+""\]=)', re.I)
        matches = re.findall(valid_regex, data)
        self.results.append({"filename":filename, "value":len(matches)})
        return len(matches)

@@ -214,7 +214,7 @@ class SignatureSuperNasty:
    def calculate(self, data, filename):
        if not data:
            return "", 0
-       valid_regex = re.compile('(unslash_rec|@\$_\[\]=|\$_=@\$_GET|\$_\[\+""\]=)', re.I)
+       valid_regex = re.compile('(unslash_rec|@\$_\[\]=|\$_=@\$_GET|\$_\[\+""\]=|wsoEx)', re.I)
        matches = re.findall(valid_regex, data)
        self.results.append({"filename":filename, "value":len(matches)})
        return len(matches)

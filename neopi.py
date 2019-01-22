@@ -186,7 +186,7 @@ class SignatureNasty:
        if not data:
            return "", 0
        # Lots taken from the wonderful post at http://stackoverflow.com/questions/3115559/exploitable-php-functions
-       valid_regex = re.compile('(eval|file_put_contents|base64_decode|gzinflate|gzuncompress|md5|ord|chr|preg_|magic_quotes|^|<<|>>|rot13|explode|bin2hex|python_eval|exec|passthru|popen|proc_open|pcntl|assert\(|system\(|shell)', re.I)
+       valid_regex = re.compile('(eval\(|file_put_contents|base64_decode|gzinflate|gzuncompress|md5|ord|chr|preg_|magic_quotes|^|<<|>>|rot13|explode|bin2hex|python_eval|exec\(|passthru|popen|proc_open|pcntl|assert\(|system\(|shell)', re.I)
        matches = re.findall(valid_regex, data)
        self.results.append({"filename":filename, "value":len(matches)})
        return len(matches)
@@ -243,7 +243,7 @@ class UsesEval:
       if not data:
                return "", 0
            # Lots taken from the wonderful post at http://stackoverflow.com/questions/3115559/exploitable-php-functions
-      valid_regex = re.compile('(eval)', re.I)
+      valid_regex = re.compile('(eval\(\$(\w|\d))', re.I)
       matches = re.findall(valid_regex, data)
       self.results.append({"filename":filename, "value":len(matches)})
       return len(matches)
